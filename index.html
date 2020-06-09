@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title></title>
+		<script src="js/vue.js" type="text/javascript" charset="utf-8"></script>
+		<style type="text/css">
+			.active {
+				background-color: blue;
+				color: white;
+			}
+			.pagination-container{
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+			}
+			.showInfo{
+			}
+		</style>
+	</head>
+	<body>
+		<div id="app">
+			<v-pagination :cur-no="curNo" :total-page="totalPage" :page-size="pageSize" :total-data="totalData" :limit="limit"
+			 @on-paging="onPaging">
+			</v-pagination>
+		</div>
+
+
+		<script type="text/javascript">
+			//页码组件
+			! function($) {
+				const template =
+					`
+	        <div class="pagination-container">
+				<div class="showInfo">
+					Show {{(currPageIndex - 1) * pageSize + 1}} to {{currPageIndex * pageSize > totalData? totalData : currPageIndex * pageSize}} items，totalData {{totalData}} items
+				</div>
+				<div class="btn-container">
+					<button type="button" @click="paging(1)">First</button>
+					<button type="button" @click="paging(curNo - 1)">Prev</button>
+					<button type="button" v-for="item in pageList" @click="paging(item)" :class="{active:item===curNo}" :key="'$pagination' + item">
+						{{item}}
+					</button>
+					<button type="button" @click="paging(curNo + 1)">Next</button>
+					<button type="button" @click="paging(totalPage)">Last</button>
+				</div>
+	        </div>
+	    `
+
+				$.component('v-pagination', {
+					name: 'v-pagination',
+					template: template,
+					data: function() {
+						return {
+
+						}
+					},
+					props: {
+						//数据总数，必填
+						totalData: {
+							type: Number,
+							required: true
+						},
+						//当前页码，必填
+						curNo: {
+							type: Number,
+							required: true
+						},
+						//页大小
+						pageSize: {
+							type: Number,
+							required: false,
+							default: 15
+						},
+						//最大页数
+						totalPage: {
+							type: Number,
+							required: true,
+						},
+						//显示的页码数
+						limit: {
+							type: Number,
+							required: false,
+							default: 5
+						},
+						onPaging: {
+							type: Function,
+							default: function() {
+								return false
+							}
+						}
+					},
+					computed: {
+						//设置这个属性为了便于维护当前页码的特殊情况
+						currPageIndex: function() {
+							if (this.curNo < 1) {
+								return 1;
+							}
+							if (this.curNo > this.totalPage) {
+								return this.totalPage;
+							}
+							return this.curNo;
+						},
+						//动态创建页码数组
+						pageList: function() {
+
+							const arr = [];
+							let mid = 0,
+								_start = 0,
+								_end = 0;
+
+							if (this.limit % 2 === 1) { //页码为奇数
+								mid = Math.floor(this.limit / 2);
+								_start = this.curNo - mid;
+								_end = this.curNo + mid;
+							} else { //页码为偶数
+								mid = this.limit / 2;
+								_start = this.curNo - mid;
+								_end = this.curNo + mid - 1; //补差量，-1
+							}
+
+							if (_start < 1) {
+								_end = _end + (1 - _start);
+								_start = 1;
+							}
+							if (_end > this.totalPage) {
+								_start = _start - (_end - this.totalPage);
+								_end = this.totalPage;
+							}
+							if (_start < 1) {
+								_start = 1;
+							}
+
+							for (let i = _start; i <= _end; i++) {
+								arr.push(i)
+							}
+
+							return arr
+						}
+					},
+					methods: {
+						//参数为页码，jump-page为父组件的事件
+						paging: function(curNo) {
+							let me = this;
+							if (curNo < 1) {
+								curNo = 1;
+							}
+
+							if (curNo > me.totalPage) {
+								curNo = me.totalPage;
+							}
+
+							//点击当前页，不重复请求，提升效率
+							if (curNo == me.curNo) {
+								return;
+							}
+
+							this.$emit('on-paging', curNo);
+						}
+
+					}
+				});
+			}(Vue)
+		</script>
+
+		<script type="text/javascript">
+			const vm = new Vue({
+				el: "#app",
+				data: {
+					curNo: 1,
+					totalPage: 20,
+					pageSize: 10,
+					totalData: 199,
+					limit: 5
+				},
+				methods: {
+					onPaging: function(i) {
+						this.curNo = i;
+						console.log("请求第" + i + "页数据");
+					}
+				}
+			})
+		</script>
+
+
+	</body>
+</html>
